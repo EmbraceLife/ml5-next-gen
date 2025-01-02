@@ -3,22 +3,16 @@ let gridSize = 20; // Size of each square in the grid
 let rotations = []; // Array to store rotation angles
 let collectiveRotationTime = 0; // Timer for collective rotation change
 
-
-let handPose;
-let video;
-let hands = [];
-
-// Common finger indexes we might use
-const THUMB_TIP = 4;
-const INDEX_FINGER_TIP = 8;
-
-
-
 function preload() {
-    // Load the handPose model
-    handPose = ml5.handpose({ maxHands: 2, flipped: true });
+    handPose = ml5.handPose({
+        maxHands: 1,  // Track only one hand
+        flipped: true // Mirror the video
+    });
 }
 
+function gotHands(results) {
+    hands = results;
+}
 
 
 function setup() {
@@ -28,12 +22,10 @@ function setup() {
     // video = createCapture({ video: { flipped: true } });
     video.size(width / gridSize, height / gridSize);
     video.hide();
+    noStroke();
 
     // Start detection and specify callback function
     handPose.detectStart(video, gotHands);
-
-
-    noStroke();
 
     // Initialize random rotations for each grid cell
     for (let y = 0; y < video.height; y++) {
@@ -79,7 +71,27 @@ function draw() {
             pop();
         }
     }
+
+
+    // First check if any hands are detected
+    if (hands.length > 0) {
+        // Get specific finger positions
+        let thumb = hands[0].keypoints[THUMB_TIP];
+        let index = hands[0].keypoints[INDEX_FINGER_TIP];
+
+        // Use the x, y coordinates
+        circle(thumb.x, thumb.y, 10);  // Draw circle at thumb tip
+        circle(index.x, index.y, 10);  // Draw circle at index finger tip
+    }
 }
+
+let handPose;
+let hands = [];
+
+// Common finger indexes we might use
+const THUMB_TIP = 4;
+const INDEX_FINGER_TIP = 8;
+
 
 function windowResized() {
     // Adjust canvas size when the window is resized
