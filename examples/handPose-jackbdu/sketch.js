@@ -3,40 +3,45 @@ let gridSize = 20;
 let handPose;
 let hands = [];
 let sliders = {};
+let stretchSlider; // New slider for synchronized control
 
-let currentParams = {
-    freqX: 1,
-    freqY: 1,
-    phaseX: 0,
-    phaseY: 0,
-    amplitude: 100,
-    widthMultiplier: 1,  // New parameter
-    heightMultiplier: 1  // New parameter
-};
+let currentParams;
+
+
 
 function setup() {
+    currentParams = {
+        freqX: 0.5,
+        freqY: 1.5,
+        phaseX: 0.48 * PI,
+        phaseY: 0,
+        amplitude: 200,
+        widthMultiplier: 0,
+        heightMultiplier: 0.1
+    };
+
     createCanvas(windowWidth, windowHeight);
     video = createCapture(VIDEO, { flipped: true });
     video.size(width / gridSize, height / gridSize);
     video.hide();
     noStroke();
 
-    // Create sliders with default values and ranges
     const sliderWidth = 200;
     const sliderX = width - sliderWidth - 40;
     let sliderY = 30;
     const sliderSpacing = 40;
 
-    // Original parameters
-    sliders.freqX = createSlider(0, 10, 0.5, 0.1); // join + stretch: start at 0.5
-    sliders.freqY = createSlider(0, 40, 1.5, 0.1); // join + stretch: start at 1.5, stretch together with widthMultiplier
-    sliders.phaseX = createSlider(0, TWO_PI, 0.48 * PI, 0.1); // fix at 0.48*PI always
-    sliders.phaseY = createSlider(0, TWO_PI, 0, 0.1); // fix at 0*PI always
-    sliders.amplitude = createSlider(0, 200, 200, 1); // fix at 200 always
+    // Create individual parameter sliders with your specified values
+    sliders.freqX = createSlider(0, 1.5, 0.5, 0.1); // start at 0.5 and end at 1.5
+    sliders.freqY = createSlider(0, 40, 1.5, 0.1);
+    sliders.phaseX = createSlider(0, TWO_PI, 0.48 * PI, 0.1);
+    sliders.phaseY = createSlider(0, TWO_PI, 0, 0.1);
+    sliders.amplitude = createSlider(0, 200, 200, 1);
+    sliders.widthMultiplier = createSlider(0.01, 2.5, 0, 0.01);
+    sliders.heightMultiplier = createSlider(0.1, 1, 0.1, 0.01);
 
-    // New aspect ratio controls
-    sliders.widthMultiplier = createSlider(0.01, 2.5, 0, 0.01); // max 2.5x, join + stretch: start at 0, stretch together with freqY
-    sliders.heightMultiplier = createSlider(0.1, 1, 0.1, 0.01); // join + stretch: start at 0.1
+    // Create the new synchronized control slider
+    stretchSlider = createSlider(0, 1, 0, 0.01);
 
     // Position and style all sliders
     Object.values(sliders).forEach(slider => {
@@ -44,6 +49,10 @@ function setup() {
         slider.style('width', `${sliderWidth}px`);
         sliderY += sliderSpacing;
     });
+
+    // Position stretch slider below others
+    stretchSlider.position(sliderX, sliderY + 20);
+    stretchSlider.style('width', `${sliderWidth}px`);
 }
 
 function draw() {
@@ -51,16 +60,30 @@ function draw() {
     video.loadPixels();
     drawVideoGrid();
 
-    // Update all parameters from sliders
-    Object.keys(sliders).forEach(param => {
-        currentParams[param] = sliders[param].value();
-    });
+    // Get stretch factor from new slider
+    let stretchFactor = stretchSlider.value();
 
-    // Draw the curve with enhanced appearance
+    // Update fixed parameters
+    currentParams.freqX = sliders.freqX.value();
+    currentParams.phaseX = 0.48 * PI;
+    currentParams.phaseY = 0;
+    currentParams.amplitude = 200;
+    currentParams.heightMultiplier = sliders.heightMultiplier.value();
+
+    // Update synchronized parameters
+    // Map stretch factor to both freqY and widthMultiplier
+    currentParams.freqY = map(stretchFactor, 0, 1, 1.5, 40);  // from 1.5 to 40
+    currentParams.widthMultiplier = map(stretchFactor, 0, 1, 0, 2.5);  // from 0 to 2.5
+
+    // Update slider positions to match (optional)
+    sliders.freqY.value(currentParams.freqY);
+    sliders.widthMultiplier.value(currentParams.widthMultiplier);
+
+    // Draw the curve
     push();
     translate(width / 2, height / 2);
     noFill();
-    stroke(255, 165, 0);  // Mango color
+    stroke(255, 165, 0);
     strokeWeight(4);
     scale(1.2);
     drawLissajous(
@@ -76,6 +99,7 @@ function draw() {
 
     displayParameters();
 }
+
 
 function drawLissajous(freqX, freqY, phaseX, phaseY, amplitude, widthMult, heightMult) {
     beginShape();
@@ -116,6 +140,12 @@ function displayParameters() {
     textSize(14);
     text("Width/Height Multipliers: Adjust the curve's aspect ratio", padding, height - 2 * lineHeight);
     text("Values > 1 stretch, values < 1 compress", padding, height - lineHeight);
+
+    // Add stretch slider label
+    fill(255, 0, 0);
+    textSize(14);
+    text("Stretch Control (FreqY + Width)", padding, height - 3 * lineHeight);
+    text(`Stretch: ${(stretchSlider.value() * 100).toFixed(0)}%`, padding, height - 1.5 * lineHeight);
 }
 
 function drawVideoGrid() {
