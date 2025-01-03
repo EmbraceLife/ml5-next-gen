@@ -32,7 +32,7 @@ function setup() {
     const sliderSpacing = 40;
 
     // Create individual parameter sliders with your specified values
-    sliders.freqX = createSlider(0, 1.5, 0.5, 0.1); // start at 0.5 and end at 1.5
+    sliders.freqX = createSlider(0, 3, 0.5, 0.1); // start at 0.5 and end at 1.5
     sliders.freqY = createSlider(0, 40, 1.5, 0.1);
     sliders.phaseX = createSlider(0, TWO_PI, 0.48 * PI, 0.1);
     sliders.phaseY = createSlider(0, TWO_PI, 0, 0.1);
@@ -70,7 +70,7 @@ function draw() {
     currentParams.heightMultiplier = sliders.heightMultiplier.value();
 
     // Update synchronized parameters
-    currentParams.freqX = map(stretchFactor, 0, 1, 0.5, 1.5);    // from 0.5 to 1.5
+    currentParams.freqX = map(stretchFactor, 0, 1, 0.5, 3);    // from 0.5 to 1.5
     currentParams.freqY = map(stretchFactor, 0, 1, 1.5, 40);     // from 1.5 to 40
     currentParams.widthMultiplier = map(stretchFactor, 0, 1, 0, 2.5);  // from 0 to 2.5
 
