@@ -5,6 +5,16 @@ let hands = [];
 let sliders = {};
 let stretchSlider; // New slider for synchronized control
 
+// Add oscillation control variables
+let lastStretchValue = 0;
+let isSliderMoving = false;
+let oscillationTimer = 0;
+let oscillationDirection = 1;  // 1 or -1
+let freqXDirection = 1;
+let freqYDirection = -1;
+
+
+
 let currentParams;
 
 
@@ -60,8 +70,11 @@ function draw() {
     video.loadPixels();
     drawVideoGrid();
 
-    // Get stretch factor from synchronized slider
     let stretchFactor = stretchSlider.value();
+
+    // Detect slider movement
+    isSliderMoving = abs(stretchFactor - lastStretchValue) > 0.001;
+    lastStretchValue = stretchFactor;
 
     // Update fixed parameters
     currentParams.phaseX = 0.48 * PI;
@@ -69,35 +82,53 @@ function draw() {
     currentParams.amplitude = 200;
     currentParams.heightMultiplier = sliders.heightMultiplier.value();
 
-    // Update synchronized parameters
-    currentParams.freqX = map(stretchFactor, 0, 1, 0.5, 3);    // from 0.5 to 1.5
-    currentParams.freqY = map(stretchFactor, 0, 1, 1.5, 40);     // from 1.5 to 40
-    currentParams.widthMultiplier = map(stretchFactor, 0, 1, 0, 2.5);  // from 0 to 2.5
+    if (isSliderMoving) {
+        // Direct slider control
+        currentParams.freqX = map(stretchFactor, 0, 1, 0.5, 3);
+        currentParams.freqY = map(stretchFactor, 0, 1, 1.5, 40);
+        currentParams.widthMultiplier = map(stretchFactor, 0, 1, 0, 2.5);
+        oscillationTimer = 0;
+    } else {
+        // Handle oscillation based on slider position
+        if (stretchFactor === 0) {
+            // At minimum: decrease both to zero
+            currentParams.freqX = max(0, currentParams.freqX - 0.05);
+            currentParams.freqY = max(0, currentParams.freqY - 0.05);
+        } else if (stretchFactor === 1) {
+            // At maximum: FreqX stays max, FreqY oscillates
+            currentParams.freqX = 3;  // Keep at max
+            oscillationTimer += 0.02;
+            currentParams.freqY += oscillationDirection * 0.5;
 
-    // Update slider positions to match
+            // Reverse direction at boundaries
+            if (currentParams.freqY >= 40 || currentParams.freqY <= 0) {
+                oscillationDirection *= -1;
+            }
+        } else {
+            // Normal oscillation
+            oscillationTimer += 0.02;
+
+            // Asynchronous oscillation
+            currentParams.freqX += freqXDirection * 0.05;
+            currentParams.freqY += freqYDirection * 0.5;
+
+            // Boundary checks and direction reversal
+            if (currentParams.freqX >= 3 || currentParams.freqX <= 0.5) {
+                freqXDirection *= -1;
+            }
+            if (currentParams.freqY >= 40 || currentParams.freqY <= 1.5) {
+                freqYDirection *= -1;
+            }
+        }
+    }
+
+    // Update slider positions
     sliders.freqX.value(currentParams.freqX);
     sliders.freqY.value(currentParams.freqY);
     sliders.widthMultiplier.value(currentParams.widthMultiplier);
 
-
-    // Draw the curve
-    push();
-    translate(width / 2, height / 2);
-    noFill();
-    stroke(255, 165, 0);
-    strokeWeight(4);
-    scale(1.2);
-    drawLissajous(
-        currentParams.freqX,
-        currentParams.freqY,
-        currentParams.phaseX,
-        currentParams.phaseY,
-        currentParams.amplitude,
-        currentParams.widthMultiplier,
-        currentParams.heightMultiplier
-    );
-    pop();
-
+    // Draw curve and parameters
+    drawLissajousCurve();
     displayParameters();
 }
 
@@ -147,6 +178,19 @@ function displayParameters() {
     textSize(14);
     text("Stretch Control (FreqY + Width)", padding, height - 3 * lineHeight);
     text(`Stretch: ${(stretchSlider.value() * 100).toFixed(0)}%`, padding, height - 1.5 * lineHeight);
+
+    // Add oscillation status
+    fill(255, 0, 0);
+    textSize(14);
+    if (isSliderMoving) {
+        text("Status: Slider Control", padding, height - 4 * lineHeight);
+    } else if (stretchSlider.value() === 0) {
+        text("Status: Decreasing to Zero", padding, height - 4 * lineHeight);
+    } else if (stretchSlider.value() === 1) {
+        text("Status: Maximum Oscillation", padding, height - 4 * lineHeight);
+    } else {
+        text("Status: Asynchronous Oscillation", padding, height - 4 * lineHeight);
+    }
 }
 
 function drawVideoGrid() {
@@ -168,4 +212,23 @@ function drawVideoGrid() {
             pop();
         }
     }
+}
+
+function drawLissajousCurve() {
+    push();
+    translate(width / 2, height / 2);
+    noFill();
+    stroke(255, 165, 0);
+    strokeWeight(4);
+    scale(1.2);
+    drawLissajous(
+        currentParams.freqX,
+        currentParams.freqY,
+        currentParams.phaseX,
+        currentParams.phaseY,
+        currentParams.amplitude,
+        currentParams.widthMultiplier,
+        currentParams.heightMultiplier
+    );
+    pop();
 }
