@@ -60,24 +60,25 @@ function draw() {
     video.loadPixels();
     drawVideoGrid();
 
-    // Get stretch factor from new slider
+    // Get stretch factor from synchronized slider
     let stretchFactor = stretchSlider.value();
 
     // Update fixed parameters
-    currentParams.freqX = sliders.freqX.value();
     currentParams.phaseX = 0.48 * PI;
     currentParams.phaseY = 0;
     currentParams.amplitude = 200;
     currentParams.heightMultiplier = sliders.heightMultiplier.value();
 
     // Update synchronized parameters
-    // Map stretch factor to both freqY and widthMultiplier
-    currentParams.freqY = map(stretchFactor, 0, 1, 1.5, 40);  // from 1.5 to 40
+    currentParams.freqX = map(stretchFactor, 0, 1, 0.5, 1.5);    // from 0.5 to 1.5
+    currentParams.freqY = map(stretchFactor, 0, 1, 1.5, 40);     // from 1.5 to 40
     currentParams.widthMultiplier = map(stretchFactor, 0, 1, 0, 2.5);  // from 0 to 2.5
 
-    // Update slider positions to match (optional)
+    // Update slider positions to match
+    sliders.freqX.value(currentParams.freqX);
     sliders.freqY.value(currentParams.freqY);
     sliders.widthMultiplier.value(currentParams.widthMultiplier);
+
 
     // Draw the curve
     push();
